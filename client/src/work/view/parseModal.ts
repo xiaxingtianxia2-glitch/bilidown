@@ -55,6 +55,10 @@ export class ParseModalComp implements VanComponent {
     /** 下载类型：audio 仅音频，video 仅视频，merge 音视频合并 */
     downloadType = van.state<'audio' | 'video' | 'merge'>('merge')
 
+    /** 是否同时下载封面并内嵌到视频 */
+    withCover = van.state(true)
+
+
     /** 优先视频编码格式：12 hev1, 7 avc1, 13 av01 */
     preferredCodec = van.state<12 | 7 | 13>(12)
     /** 是否优先使用HiRes（flac）音频 */
@@ -169,6 +173,8 @@ export class ParseModalComp implements VanComponent {
                 audio: getAudioURL(info.info!, this.preferHiResAudio.val),
                 duration: info.info!.dash.duration,
                 downloadType: this.downloadType.val,
+                withCover: this.withCover.val,
+
                 ...activeVideoInfo
             })
         })).then(() => {
@@ -280,7 +286,21 @@ export class ParseModalComp implements VanComponent {
                             oninput: (e) => _that.preferHiResAudio.val = (e.target as HTMLInputElement).checked
                         }),
                         label({ class: 'form-check-label', for: 'preferHiResAudio' }, 'Hi-Res')
+                    ),
+                    div({
+                        class: 'form-check form-check-inline',
+                        hidden: () => _that.downloadType.val == 'audio'
+                    },
+                        input({
+                            type: 'checkbox',
+                            class: 'form-check-input',
+                            id: 'withCover',
+                            checked: _that.withCover,
+                            oninput: (e) => _that.withCover.val = (e.target as HTMLInputElement).checked
+                        }),
+                        label({ class: 'form-check-label', for: 'withCover' }, '下载封面并合并到视频')
                     )
+
                 )
             ),
             button({
