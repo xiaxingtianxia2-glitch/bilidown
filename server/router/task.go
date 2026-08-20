@@ -158,6 +158,14 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	coverPath := _task.CoverFilePath()
+	err = os.Remove(coverPath)
+	if err != nil && !os.IsNotExist(err) {
+		util.Res{Success: false, Message: fmt.Sprintf("封面文件删除失败 os.Remove: %v", err)}.Write(w)
+		return
+	}
+
+
 	err = task.DeleteTask(db, taskID)
 	if err != nil {
 		util.Res{Success: false, Message: fmt.Sprintf("task.DeleteTask: %v", err)}.Write(w)
