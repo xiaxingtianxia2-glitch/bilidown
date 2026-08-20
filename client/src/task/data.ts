@@ -66,6 +66,9 @@ type ActiveTask = {
     mergeProgress: number
     /** 视频时长，秒 */
     duration: number
+    /** 是否同时下载封面并内嵌到视频 */
+    withCover?: boolean
+
 }
 
 export const deleteTask = async (id: number) => {
