@@ -245,6 +245,8 @@ export type TaskInitData = {
     video: string
     duration: number
     downloadType: 'audio' | 'video' | 'merge'
+    withCover: boolean
+
 }
 
 /** 任务数据库中的数据 */
