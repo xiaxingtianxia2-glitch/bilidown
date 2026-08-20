@@ -37,6 +37,7 @@ type TaskInitOption struct {
 	Video        string             `json:"video"`
 	Duration     int                `json:"duration"`
 	DownloadType string             `json:"downloadType"`
+	WithCover    bool               `json:"withCover"`
 }
 
 // TaskInDB 任务数据库中的数据
@@ -57,6 +58,11 @@ func (task *TaskInDB) FilePath() string {
 			ext,
 		),
 	)
+}
+
+// CoverFilePath 返回独立封面文件的保存路径
+func (task *TaskInDB) CoverFilePath() string {
+	return strings.TrimSuffix(task.FilePath(), filepath.Ext(task.FilePath())) + ".jpg"
 }
 
 // done | waiting | running | error
@@ -150,6 +156,16 @@ func (task *Task) Start() {
 			return
 		}
 		GlobalDownloadSem.Release()
+
+		coverTempPath := filepath.Join(task.Folder, strconv.FormatInt(task.ID, 10)+".cover")
+		coverPath := task.CoverFilePath()
+		if task.WithCover {
+			if err := DownloadCover(client, task.Cover, task); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("DownloadCover: %v", err))
+				return
+			}
+		}
+
 		outputPath := task.TaskInDB.FilePath()
 		videoPath := filepath.Join(task.Folder, strconv.FormatInt(task.ID, 10)+".video")
 		err = os.Rename(videoPath, outputPath)
@@ -157,9 +173,21 @@ func (task *Task) Start() {
 			task.UpdateStatus(db, "error", fmt.Errorf("os.Rename: %v", err))
 			return
 		}
-		// 添加元数据
-		if err := task.addMetadata(outputPath); err != nil {
-			log.Printf("添加元数据失败 (任务ID: %d): %v", task.ID, err)
+
+		if task.WithCover {
+			if err := os.Rename(coverTempPath, coverPath); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("os.Rename cover: %v", err))
+				return
+			}
+			if err := task.addMetadata(outputPath, coverPath); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("添加封面/元数据失败: %v", err))
+				return
+			}
+		} else {
+			// 添加元数据
+			if err := task.addMetadata(outputPath); err != nil {
+				log.Printf("添加元数据失败 (任务ID: %d): %v", task.ID, err)
+			}
 		}
 		task.UpdateStatus(db, "done")
 		return
@@ -178,6 +206,15 @@ func (task *Task) Start() {
 			return
 		}
 		GlobalDownloadSem.Release()
+
+		coverTempPath := filepath.Join(task.Folder, strconv.FormatInt(task.ID, 10)+".cover")
+		coverPath := task.CoverFilePath()
+		if task.WithCover {
+			if err := DownloadCover(client, task.Cover, task); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("DownloadCover: %v", err))
+				return
+			}
+		}
 
 		outputPath := task.TaskInDB.FilePath()
 		videoPath := filepath.Join(task.Folder, strconv.FormatInt(task.ID, 10)+".video")
@@ -202,9 +239,21 @@ func (task *Task) Start() {
 			return
 		}
 		GlobalMergeSem.Release()
-		// 添加元数据
-		if err := task.addMetadata(outputPath); err != nil {
-			log.Printf("添加元数据失败 (任务ID: %d): %v", task.ID, err)
+
+		if task.WithCover {
+			if err := os.Rename(coverTempPath, coverPath); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("os.Rename cover: %v", err))
+				return
+			}
+			if err := task.addMetadata(outputPath, coverPath); err != nil {
+				task.UpdateStatus(db, "error", fmt.Errorf("添加封面/元数据失败: %v", err))
+				return
+			}
+		} else {
+			// 添加元数据
+			if err := task.addMetadata(outputPath); err != nil {
+				log.Printf("添加元数据失败 (任务ID: %d): %v", task.ID, err)
+			}
 		}
 		task.UpdateStatus(db, "done")
 	}
@@ -353,6 +402,31 @@ func DownloadMedia(client *bilibili.BiliClient, _url string, task *Task, mediaTy
 	return nil
 }
 
+// DownloadCover 下载视频封面到临时文件 <taskID>.cover
+func DownloadCover(client *bilibili.BiliClient, _url string, task *Task) error {
+	var resp *http.Response
+	var err error
+	for i := 0; i < 5; i++ {
+		resp, err = client.SimpleGET(_url, nil)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	filename := filepath.Join(task.Folder, strconv.FormatInt(task.ID, 10)+".cover")
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	return err
+}
+
 type progressBar struct {
 	total   int64
 	current int64
@@ -458,8 +532,8 @@ func GetTask(db *sql.DB, taskID int) (*TaskInDB, error) {
 	return &task, nil
 }
 
-// addMetadata 使用 ffmpeg 给输出文件添加元数据（description 和 artist）
-func (task *Task) addMetadata(filePath string) error {
+// addMetadata 使用 ffmpeg 给输出文件添加元数据（description 和 artist），可选内嵌封面
+func (task *Task) addMetadata(filePath string, coverPath ...string) error {
 	ffmpegPath, err := util.GetFFmpegPath()
 	if err != nil {
 		return err
@@ -475,15 +549,29 @@ func (task *Task) addMetadata(filePath string) error {
 	// 临时文件加上 .mp4 扩展名
 	tempPath := filePath + ".tmp.mp4"
 
-	// 使用双引号包裹文件路径，避免特殊字符
-	cmd := exec.Command(ffmpegPath,
-		"-i", filePath,
+	args := []string{"-i", filePath}
+	hasCover := len(coverPath) > 0 && coverPath[0] != ""
+	if hasCover {
+		args = append(args, "-i", coverPath[0])
+	}
+	args = append(args,
+		"-map", "0",
 		"-metadata", "description="+desc,
 		"-metadata", "artist="+author,
 		"-codec", "copy",
-		"-y",
-		tempPath,
 	)
+	if hasCover {
+		args = append(args,
+			"-map", "1:v",
+			"-c:v:1", "mjpeg",
+			"-disposition:v:1", "attached_pic",
+			"-metadata:s:v:1", "title=Album cover",
+			"-metadata:s:v:1", "comment=Cover (front)",
+		)
+	}
+	args = append(args, "-y", tempPath)
+
+	cmd := exec.Command(ffmpegPath, args...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
