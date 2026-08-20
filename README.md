@@ -1,5 +1,9 @@
 # Bilidown
 
+> 本仓库是 [iuroc/bilidown](https://github.com/iuroc/bilidown) 的 fork，新增功能：下载视频时同时下载封面，并自动将封面合并/内嵌到视频文件（MP4 attached_pic）。原项目说明如下。
+
+---
+
 [![GitHub Release](https://img.shields.io/github/v/release/iuroc/bilidown)](https://github.com/iuroc/bilidown/releases)
 
 哔哩哔哩视频解析下载工具，支持 8K 视频、Hi-Res 音频、杜比视界下载、批量解析，可扫码登录，常驻托盘。
@@ -17,14 +21,6 @@
 1. 从 [Releases](https://github.com/iuroc/bilidown/releases) 下载适合您系统版本的安装包
 2. 非 Windows 系统，请先安装 [FFmpeg 工具](https://www.ffmpeg.org/)
 3. 将安装包解压后执行即可
-
-## 第三方客户端
-
-感谢社区开发者对 Bilidown 的支持。
-
-- **bilidown-for-mac**（macOS 原生客户端）
-  - 项目地址：https://github.com/Qwehhh2233/bilidown-for-mac
-  - 基于 Bilidown 后端实现，由社区开发者维护，为 macOS 用户提供原生客户端体验
 
 ## 软件特色
 
