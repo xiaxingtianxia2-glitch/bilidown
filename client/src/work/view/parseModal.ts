@@ -151,7 +151,8 @@ export class ParseModalComp implements VanComponent {
             return ({
                 bvid: info.page.bvid,
                 cid: info.page.cid,
-                cover: workRoute.videoInfoCardData.val.cover,
+                // 每个分集使用自己的封面；只有缺失时才回退到入口视频的封面
+                cover: info.page.cover || workRoute.videoInfoCardData.val.cover,
                 title: (badgeNotNum
                     ? [
                         info.page.part.trim(),

@@ -75,6 +75,8 @@ export type PageInParseResult = {
     page: number
     /** 分集标题 */
     part: string
+    /** 分集自己的封面；不同稿件不能共用入口视频的封面 */
+    cover: string
     /** 分集时长 */
     duration: number
     /** 分集分辨率 */
@@ -137,6 +139,10 @@ export type VideoInfo = {
                 title: string
                 pages: PageInVideoInfo[]
                 bvid: string
+                /** 合集内该稿件自己的封面信息 */
+                arc?: {
+                    pic: string
+                }
             }[]
         }[] | null
         title: string

@@ -1,6 +1,8 @@
 # Bilidown
 
 > 本仓库是 [iuroc/bilidown](https://github.com/iuroc/bilidown) 的 fork，新增功能：下载视频时同时下载封面，并自动将封面合并/内嵌到视频文件（MP4 attached_pic）。原项目说明如下。
+>
+> 2026-11-07 修复：合集/批量下载时封面不再统一使用「解析入口视频」的封面，每个分P使用其所属稿件自己的封面（`ugc_season.sections[].episodes[].arc.pic`）。
 
 ---
 

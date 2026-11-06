@@ -38,6 +38,7 @@ export const start = async (
                                 duration: k.duration,
                                 page: index,
                                 part: j.title,
+                                cover: j.arc?.pic || info.pic,
                                 badge: index.toString(),
                                 selected: van.state(bvid == j.bvid)
                             }
@@ -55,6 +56,7 @@ export const start = async (
                 duration: info.duration,
                 pages: info.pages.map((page, index) => ({
                     ...page,
+                    cover: info.pic,
                     bvid,
                     badge: (index + 1).toString(),
                     selected: van.state(info.pages.length == 1)
@@ -105,6 +107,7 @@ export const start = async (
                     selected: van.state(index == 0),
                     bvid: info.bvid,
                     cid: info.ugc.first_cid,
+                    cover: info.cover,
                     dimension: { height: 0, width: 0, rotate: 0 },
                     duration: info.duration,
                     page: index,
@@ -127,6 +130,7 @@ const episodeToPage = (episode: Episode, index: number): PageInParseResult => {
     return {
         bvid: episode.bvid,
         cid: episode.cid,
+        cover: episode.cover,
         dimension: episode.dimension,
         duration: episode.duration,
         page: index + 1,

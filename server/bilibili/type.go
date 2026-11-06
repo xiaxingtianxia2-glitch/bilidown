@@ -124,6 +124,11 @@ type VideoInfo struct {
 				Title string `json:"title"`
 				Pages []Page `json:"pages"`
 				Bvid  string `json:"bvid"`
+				// Arc 是合集内该稿件的稿件信息，Pic 为该稿件自己的封面。
+				// 同一合集内不同稿件封面不同，不能用外层 VideoInfo.Pic 代替。
+				Arc struct {
+					Pic string `json:"pic"`
+				} `json:"arc"`
 			} `json:"episodes"`
 		} `json:"sections"`
 		Title string `json:"title"`
